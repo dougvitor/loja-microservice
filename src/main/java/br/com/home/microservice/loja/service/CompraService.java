@@ -2,6 +2,8 @@ package br.com.home.microservice.loja.service;
 
 import java.net.URI;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.HttpMethod;
@@ -17,6 +19,8 @@ import br.com.home.microservice.loja.model.Compra;
 
 @Service
 public class CompraService {
+	
+	private static final Logger LOG = LoggerFactory.getLogger(CompraService.class);
 	
 	@Autowired
 	private RestTemplate restTemplateClient;
@@ -45,9 +49,13 @@ public class CompraService {
 	
 	public Compra realizarCompra(CompraDTO compra) {
 		
+		LOG.info("Buscando informações do fornecedor de {}", compra.getEndereco().getEstado());
+		
 		InfoFornecedorDTO info = fornecedorClient.getInfoPorEstado(compra.getEndereco().getEstado());
 		
-		System.out.println(String.format("Endereço do fornecedor: %s", info.getEndereco()));
+		LOG.info("Endereço do fornecedor: {}", info.getEndereco());
+		
+		LOG.info("Realizando um Pedido...");
 		
 		InfoPedidoDTO pedido = fornecedorClient.realizarPedido(compra.getItens());
 		
