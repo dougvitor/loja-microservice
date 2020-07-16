@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+
 import br.com.home.microservice.loja.client.FornecedorClient;
 import br.com.home.microservice.loja.dto.CompraDTO;
 import br.com.home.microservice.loja.dto.InfoFornecedorDTO;
@@ -47,6 +49,7 @@ public class CompraService {
 		System.out.println(exchange.getBody().getEndereco());
 	}
 	
+	@HystrixCommand(fallbackMethod = "realizaCompraFallback")
 	public Compra realizarCompra(CompraDTO compra) {
 		
 		LOG.info("Buscando informações do fornecedor de {}", compra.getEndereco().getEstado());
@@ -57,11 +60,22 @@ public class CompraService {
 		
 		LOG.info("Realizando um Pedido...");
 		
+		/*try {
+			Thread.sleep(2000);
+		} catch (InterruptedException e) {
+			return null;
+		}*/
+		
 		InfoPedidoDTO pedido = fornecedorClient.realizarPedido(compra.getItens());
 		
 		Compra compraRealizada = new Compra(pedido.getId(), pedido.getTempoDePreparo(), compra.getEndereco().toString());
 		
 		return compraRealizada;
+	}
+	
+	public Compra realizaCompraFallback(CompraDTO compra) {
+		LOG.error("Não foi possível realizar o pedido");
+		return null;
 	}
 
 }
