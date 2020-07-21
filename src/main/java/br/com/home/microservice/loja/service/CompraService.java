@@ -1,6 +1,7 @@
 package br.com.home.microservice.loja.service;
 
 import java.net.URI;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,7 @@ import br.com.home.microservice.loja.dto.CompraDTO;
 import br.com.home.microservice.loja.dto.InfoFornecedorDTO;
 import br.com.home.microservice.loja.dto.InfoPedidoDTO;
 import br.com.home.microservice.loja.model.Compra;
+import br.com.home.microservice.loja.repository.CompraRepository;
 
 @Service
 public class CompraService {
@@ -32,7 +34,10 @@ public class CompraService {
 	
 	@Autowired
 	private FornecedorClient fornecedorClient;
-
+	
+	@Autowired
+	private CompraRepository compraRepository;
+	
 	public void realizarCompraRestTemplate(CompraDTO compra) {
 		
 		eurekaClient
@@ -49,7 +54,12 @@ public class CompraService {
 		System.out.println(exchange.getBody().getEndereco());
 	}
 	
-	@HystrixCommand(fallbackMethod = "realizaCompraFallback")
+	@HystrixCommand(threadPoolKey = "getByIdThreadPool")
+	public Optional<Compra> getById(Long id) {
+		return compraRepository.findById(id);
+	}
+	
+	@HystrixCommand(fallbackMethod = "realizaCompraFallback", threadPoolKey = "realizarCompraThreadPool")
 	public Compra realizarCompra(CompraDTO compra) {
 		
 		LOG.info("Buscando informações do fornecedor de {}", compra.getEndereco().getEstado());
@@ -60,15 +70,10 @@ public class CompraService {
 		
 		LOG.info("Realizando um Pedido...");
 		
-		/*try {
-			Thread.sleep(2000);
-		} catch (InterruptedException e) {
-			return null;
-		}*/
-		
 		InfoPedidoDTO pedido = fornecedorClient.realizarPedido(compra.getItens());
 		
 		Compra compraRealizada = new Compra(pedido.getId(), pedido.getTempoDePreparo(), compra.getEndereco().toString());
+		compraRepository.save(compraRealizada);
 		
 		return compraRealizada;
 	}
