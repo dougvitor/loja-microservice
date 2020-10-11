@@ -118,7 +118,7 @@ public class CompraService {
 		LOG.error("Não foi possível realizar o pedido");
 		
 		if(Objects.nonNull(compra.getCompraId())) {
-			return compraRepository.findById(compra.getCompraId()).get();
+			return compraRepository.findById(compra.getCompraId()).orElse(new Compra());
 		}
 		
 		return Compra.builder().status(StatusCompra.NAO_PROCESSADA).build();
